@@ -2,7 +2,7 @@
   "name": "anton-panfilov/ab-tests",
   "type": "library",
   "license": "MIT",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "authors": [
     {
       "name": "Anton Panfilov"

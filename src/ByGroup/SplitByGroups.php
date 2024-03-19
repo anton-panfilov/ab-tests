@@ -17,7 +17,7 @@ use Throwable;
 
 abstract class SplitByGroups
 {
-    abstract protected function settingsDataLayer(): DataLayerInterface;
+    abstract protected function dataLayer(): DataLayerInterface;
 
     abstract protected function makeOptions(mixed $settings): OptionsCollection;
 
@@ -28,22 +28,22 @@ abstract class SplitByGroups
 
     public function searchPeriod(int $group, int $timestamp): ?Period
     {
-        return $this->settingsDataLayer()->searchPeriod(group: $group, timestamp: $timestamp);
+        return $this->dataLayer()->searchPeriod(group: $group, timestamp: $timestamp);
     }
 
     public function getPeriods(int $group): PeriodsCollection
     {
-        return $this->settingsDataLayer()->getPeriods(group: $group);
+        return $this->dataLayer()->getPeriods(group: $group);
     }
 
     public function getGroups(): GroupsCollection
     {
-        return $this->settingsDataLayer()->getGroups();
+        return $this->dataLayer()->getGroups();
     }
 
     public function get(int $id): ?Period
     {
-        return $this->settingsDataLayer()->getPeriod(id: $id);
+        return $this->dataLayer()->getPeriod(id: $id);
     }
 
     private static function makeShape(int $startTs, ?int $endTs): AbstractShape
@@ -55,7 +55,7 @@ abstract class SplitByGroups
 
     public function remove(int $id): void
     {
-        $this->settingsDataLayer()->removePeriod(id: $id);
+        $this->dataLayer()->removePeriod(id: $id);
     }
 
     /**
@@ -87,7 +87,7 @@ abstract class SplitByGroups
             endTs: $endTs
         );
         try {
-            $this->settingsDataLayer()->transactionStart();
+            $this->dataLayer()->transactionStart();
             foreach ($periods->all() as $period) {
                 $currentShape = self::makeShape(
                     startTs: $period->startTs,
@@ -115,7 +115,7 @@ abstract class SplitByGroups
                             $max = null;
                         }
 
-                        $this->settingsDataLayer()->insertPeriod(
+                        $this->dataLayer()->insertPeriod(
                             group: $period->group,
                             settings: $period->settings,
                             startTs: $min,
@@ -127,19 +127,19 @@ abstract class SplitByGroups
                 }
             }
 
-            $id = $this->settingsDataLayer()->insertPeriod(
+            $id = $this->dataLayer()->insertPeriod(
                 group: $group,
                 settings: $settings,
                 startTs: $startTs,
                 endTs: $endTs
             );
 
-            $this->settingsDataLayer()->transactionCommit();
+            $this->dataLayer()->transactionCommit();
 
             return $id;
 
         } catch (Throwable $e) {
-            $this->settingsDataLayer()->transactionRollback();
+            $this->dataLayer()->transactionRollback();
             throw $e;
         }
     }
