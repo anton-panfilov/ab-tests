@@ -18,7 +18,13 @@ use Throwable;
 abstract class SplitByGroups
 {
     abstract protected function settingsDataLayer(): DataLayerInterface;
+
     abstract protected function makeOptions(mixed $settings): OptionsCollection;
+
+    protected function modifySettings(mixed $settings): mixed
+    {
+        return $settings;
+    }
 
     public function searchPeriod(int $group, int $timestamp): ?Period
     {
@@ -35,11 +41,21 @@ abstract class SplitByGroups
         return $this->settingsDataLayer()->getGroups();
     }
 
+    public function get(int $id): ?Period
+    {
+        return $this->settingsDataLayer()->getPeriod(id: $id);
+    }
+
     private static function makeShape(int $startTs, ?int $endTs): AbstractShape
     {
         return is_null($endTs) ?
             Shape::vp($startTs) :
             Shape::s($startTs, $endTs);
+    }
+
+    public function remove(int $id): void
+    {
+        $this->settingsDataLayer()->removePeriod(id: $id);
     }
 
     /**
@@ -62,6 +78,8 @@ abstract class SplitByGroups
         if (!is_null($endTs) && $startTs > $endTs) {
             throw new BadPeriod("`endTs` can't be before `startTs`");
         }
+
+        $settings = $this->modifySettings(settings: $settings);
 
         $periods  = $this->getPeriods(group: $group);
         $newShape = self::makeShape(
@@ -124,15 +142,5 @@ abstract class SplitByGroups
             $this->settingsDataLayer()->transactionRollback();
             throw $e;
         }
-    }
-
-    public function get(int $id): void
-    {
-        $this->settingsDataLayer()->removePeriod(id: $id);
-    }
-
-    public function remove(int $id): void
-    {
-        $this->settingsDataLayer()->removePeriod(id: $id);
     }
 }
