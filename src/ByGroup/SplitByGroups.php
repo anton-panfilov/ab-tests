@@ -7,7 +7,9 @@ use AP\ABTest\IntIdBased\ByGroup\DataModel\Period;
 use AP\ABTest\IntIdBased\ByGroup\DataModel\PeriodsCollection;
 use AP\ABTest\IntIdBased\ByGroup\Exception\BadPeriod;
 use AP\ABTest\IntIdBased\ByGroup\Exception\CanNotReplace;
+use AP\ABTest\IntIdBased\ByGroup\Exception\NotFound;
 use AP\ABTest\IntIdBased\XOptions\DataModel\OptionsCollection;
+use AP\ABTest\IntIdBased\XOptions\OptionSelector;
 use AP\Geometry\Int1D\Exception\Infinity;
 use AP\Geometry\Int1D\Exception\NoIntersectsException;
 use AP\Geometry\Int1D\Geometry\Exclude;
@@ -142,5 +144,32 @@ abstract class SplitByGroups
             $this->dataLayer()->transactionRollback();
             throw $e;
         }
+    }
+
+    /**
+     * @throws NotFound
+     * @throws Throwable
+     */
+    public function getElement(
+        int $item,
+        int $group,
+        int $timestamp,
+        int $offset,
+    ): mixed
+    {
+        $period = $this->searchPeriod(
+            group: $group,
+            timestamp: $timestamp
+        );
+
+        if ($period instanceof Period) {
+            return OptionSelector::getOption(
+                options: $this->makeOptions($period->settings),
+                item: $item,
+                offset: $offset,
+            )->element;
+        }
+
+        throw new NotFound();
     }
 }
