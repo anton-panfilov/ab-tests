@@ -1,6 +1,7 @@
 {
   "name": "anton-panfilov/ab-tests",
   "type": "library",
+  "homepage": "https://github.com/anton-panfilov/ab-tests",
   "license": "MIT",
   "authors": [
     {
