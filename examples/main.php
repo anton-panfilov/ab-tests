@@ -38,8 +38,8 @@ foreach ($options2->all() as $g2) {
 }
 
 for ($i = -10000; $i < 10000; $i++) {
-    $r1  = OptionSelector::checkInt(options: $options1, item: $i, offset: 0)->getLabel();
-    $r2  = OptionSelector::checkInt(options: $options2, item: $i, offset: 1)->getLabel();
+    $r1  = OptionSelector::getOption(options: $options1, item: $i, offset: 0)->getLabel();
+    $r2  = OptionSelector::getOption(options: $options2, item: $i, offset: 1)->getLabel();
     $key = "{$r1}_$r2";
     if (!isset($res[$key])) {
         $res[$key] = 0;

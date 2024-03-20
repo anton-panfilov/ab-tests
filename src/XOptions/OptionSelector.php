@@ -8,7 +8,7 @@ use AP\ABTest\IntIdBased\XOptions\Exception\NotFound;
 
 class OptionSelector
 {
-    static public function checkInt(OptionsCollection $options, int $item, int $offset): Option
+    static public function getOption(OptionsCollection $options, int $item, int $offset): Option
     {
         $total = 0;
         foreach ($options->all() as $group) {
