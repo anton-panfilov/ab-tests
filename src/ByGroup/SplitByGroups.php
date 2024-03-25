@@ -15,6 +15,7 @@ use AP\Geometry\Int1D\Exception\NoIntersectsException;
 use AP\Geometry\Int1D\Geometry\Exclude;
 use AP\Geometry\Int1D\Helpers\Shape;
 use AP\Geometry\Int1D\Shape\AbstractShape;
+use AP\Geometry\Int1D\Shape\ShapesCollection;
 use Throwable;
 
 abstract class SplitByGroups
@@ -55,7 +56,68 @@ abstract class SplitByGroups
             Shape::s($startTs, $endTs);
     }
 
-    public function remove(int $id): void
+    /**
+     * @throws NotFound
+     */
+    protected function cancel(int $id, ?int $currentTimestamp = null): void
+    {
+        $period = $this->get(id: $id);
+        if (!($period instanceof Period)) {
+            throw new NotFound();
+        }
+        $this->exclude(
+            period: $period,
+            excludeShape: Shape::vp(
+                is_null($currentTimestamp) ? time() : $currentTimestamp
+            )
+        );
+    }
+
+    protected function exclude(
+        Period                         $period,
+        AbstractShape|ShapesCollection $excludeShape,
+        bool                           $replace = true
+    ): void
+    {
+        $currentShape = self::makeShape(
+            startTs: $period->startTs,
+            endTs: $period->endTs
+        );
+        try {
+            $updatedCurrentShapes = Exclude::exclude(
+                exclude: $excludeShape,
+                original: $currentShape
+            );
+            if (!$replace) {
+                throw new CanNotReplace();
+            }
+            $this->remove(id: $period->id);
+            foreach ($updatedCurrentShapes->all() as $shape) {
+                try {
+                    $min = $shape->min()->value;
+                } catch (Infinity) {
+                    $min = null;
+                }
+
+                try {
+                    $max = $shape->max()->value;
+                } catch (Infinity) {
+                    $max = null;
+                }
+
+                $this->dataLayer()->insertPeriod(
+                    group: $period->group,
+                    settings: $period->settings,
+                    startTs: $min,
+                    endTs: $max
+                );
+            }
+        } catch (NoIntersectsException) {
+            // do nothing for NoIntersects case
+        }
+    }
+
+    protected function remove(int $id): void
     {
         $this->dataLayer()->removePeriod(id: $id);
     }
@@ -91,42 +153,11 @@ abstract class SplitByGroups
         try {
             $this->dataLayer()->transactionStart();
             foreach ($periods->all() as $period) {
-                $currentShape = self::makeShape(
-                    startTs: $period->startTs,
-                    endTs: $period->endTs
+                $this->exclude(
+                    period: $period,
+                    excludeShape: $newShape,
+                    replace: $replace
                 );
-                try {
-                    $updatedCurrentShapes = Exclude::exclude(
-                        exclude: $newShape,
-                        original: $currentShape
-                    );
-                    if (!$replace) {
-                        throw new CanNotReplace();
-                    }
-                    $this->remove(id: $period->id);
-                    foreach ($updatedCurrentShapes->all() as $shape) {
-                        try {
-                            $min = $shape->min()->value;
-                        } catch (Infinity) {
-                            $min = null;
-                        }
-
-                        try {
-                            $max = $shape->max()->value;
-                        } catch (Infinity) {
-                            $max = null;
-                        }
-
-                        $this->dataLayer()->insertPeriod(
-                            group: $period->group,
-                            settings: $period->settings,
-                            startTs: $min,
-                            endTs: $max
-                        );
-                    }
-                } catch (NoIntersectsException) {
-                    // do nothing for NoIntersects case
-                }
             }
 
             $id = $this->dataLayer()->insertPeriod(
