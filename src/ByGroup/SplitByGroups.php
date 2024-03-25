@@ -59,7 +59,7 @@ abstract class SplitByGroups
     /**
      * @throws NotFound
      */
-    protected function cancel(int $id, ?int $currentTimestamp = null): void
+    public function cancel(int $id, ?int $currentTimestamp = null): void
     {
         $period = $this->get(id: $id);
         if (!($period instanceof Period)) {
