@@ -2,6 +2,9 @@
 
 namespace AP\ABTest\IntIdBased\ByGroup\DataModel;
 
+use AP\Geometry\Int1D\Geometry\Intersects;
+use AP\Geometry\Int1D\Helpers\Shape;
+
 class Period
 {
     public function __construct(
@@ -12,5 +15,16 @@ class Period
         public ?int         $endTs = null,
     )
     {
+    }
+
+    public function isActive(int $currentTimestamp)
+    {
+        return Intersects::intersectsShapes(
+            shape1: Shape::p($currentTimestamp),
+            shape2: Shape::make(
+                min: $this->startTs,
+                max: $this->endTs
+            ),
+        );
     }
 }

@@ -49,13 +49,6 @@ abstract class SplitByGroups
         return $this->dataLayer()->getPeriod(id: $id);
     }
 
-    private static function makeShape(int $startTs, ?int $endTs): AbstractShape
-    {
-        return is_null($endTs) ?
-            Shape::vp($startTs) :
-            Shape::s($startTs, $endTs);
-    }
-
     /**
      * @throws NotFound
      */
@@ -79,14 +72,13 @@ abstract class SplitByGroups
         bool                           $replace = true
     ): void
     {
-        $currentShape = self::makeShape(
-            startTs: $period->startTs,
-            endTs: $period->endTs
-        );
         try {
             $updatedCurrentShapes = Exclude::exclude(
                 exclude: $excludeShape,
-                original: $currentShape
+                original: Shape::make(
+                    min: $period->startTs,
+                    max: $period->endTs
+                )
             );
             if (!$replace) {
                 throw new CanNotReplace();
@@ -146,9 +138,9 @@ abstract class SplitByGroups
         $settings = $this->modifySettings(settings: $settings);
 
         $periods  = $this->getPeriods(group: $group);
-        $newShape = self::makeShape(
-            startTs: $startTs,
-            endTs: $endTs
+        $newShape = Shape::make(
+            min: $startTs,
+            max: $endTs
         );
         try {
             $this->dataLayer()->transactionStart();
