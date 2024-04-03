@@ -4,6 +4,8 @@ namespace AP\ABTest\IntIdBased\XOptions;
 
 use AP\ABTest\IntIdBased\XOptions\DataModel\Option;
 use AP\ABTest\IntIdBased\XOptions\DataModel\OptionsCollection;
+use AP\ABTest\IntIdBased\XOptions\DataModel\SqlOption;
+use AP\ABTest\IntIdBased\XOptions\DataModel\SqlOptionsCollection;
 use AP\ABTest\IntIdBased\XOptions\Exception\NotFound;
 
 class OptionSelector
@@ -43,31 +45,59 @@ class OptionSelector
         string            $SQL_POW = 'POW',
     ): string
     {
+        $result = "case";
+        $cases  = static::sqlCasesCollection(
+            options: $options,
+            sqlEscapeString: $sqlEscapeString,
+            itemField: $itemField,
+            offset: $offset,
+            SQL_CEIL: $SQL_CEIL,
+            SQL_MOD: $SQL_MOD,
+            SQL_ABS: $SQL_ABS,
+            SQL_POW: $SQL_POW
+        );
+        foreach ($cases->all() as $case) {
+            $result .= " when $case->case_sql then $case->label_sql";
 
+        }
+        return "$result end";
+    }
+
+    static public function sqlCasesCollection(
+        OptionsCollection $options,
+        callable          $sqlEscapeString,
+        string            $itemField = 'id',
+        int               $offset = 0,
+        string            $SQL_CEIL = 'CEIL',
+        string            $SQL_MOD = 'MOD',
+        string            $SQL_ABS = 'ABS',
+        string            $SQL_POW = 'POW',
+    ): SqlOptionsCollection
+    {
         $total = 0;
         foreach ($options->all() as $group) {
             if ($group->weight > 0) {
                 $total += $group->weight;
             }
         }
-        $cases = [];
+        $cases = new SqlOptionsCollection();
         $min   = 0;
         foreach ($options->all() as $group) {
             if ($group->weight > 0) {
-                $label = $sqlEscapeString($group->getLabel());
-
                 if ($group->weight == 1) {
                     $where = "= $min";
                 } else {
                     $max   = $min + $group->weight - 1;
                     $where = "between $min and $max";
                 }
-
-                $cases[] =
-                    "when $SQL_MOD($SQL_ABS($SQL_CEIL($itemField/$SQL_POW(2, $offset))),$total) $where then $label";
+                $cases[] = new SqlOption(
+                    label: $group->getLabel(),
+                    label_sql: $sqlEscapeString($group->getLabel()),
+                    case_sql: "$SQL_MOD($SQL_ABS($SQL_CEIL($itemField/$SQL_POW(2, $offset))),$total) $where"
+                );
                 $min     += $group->weight;
             }
         }
-        return "case " . implode(" ", $cases) . " end";
+        return $cases;
     }
 }
